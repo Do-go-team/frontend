@@ -1,0 +1,63 @@
+# =============================================================================
+#  Frontend build context exclusions
+#  근거: infra/.ai/plan/dockerfile_plan.md §2.4
+#         + infra/.ai/plan/fe_ci_pnpm_migration_plan.md §2.3 (pnpm 추가)
+#
+#  목적: docker build 시 전송되는 컨텍스트를 최소화하여 빌드 속도/캐시 적중률 ↑
+#  주의: 여기 항목은 이미지에 들어가지 않을 뿐, 빌드 결과(/app/dist)에는 영향 없음
+#  주의: pnpm-lock.yaml 은 이그노어 금지 (Dockerfile 이 COPY 함)
+# =============================================================================
+
+# Node 의존성 / 빌드 산출물 (이미지 내부에서 다시 생성됨)
+node_modules
+dist
+.cache
+.parcel-cache
+.vite
+
+# pnpm 로컬 store (호스트 cache, 이미지 내부에서는 BuildKit cache 마운트로 처리)
+.pnpm-store
+
+# Git / OS 메타데이터
+.git
+.gitignore
+.gitattributes
+.DS_Store
+Thumbs.db
+
+# IDE / 에디터
+.vscode
+.idea
+*.swp
+*.swo
+
+# 테스트 / 커버리지
+coverage
+playwright-report
+test-results
+*.lcov
+
+# 환경 변수 (절대 이미지에 포함 금지)
+.env
+.env.*
+!.env.example
+
+# 문서 / 빌드 메타
+README.md
+README*
+CHANGELOG.md
+LICENSE
+Dockerfile
+.dockerignore
+CLAUDE.md
+
+# 로그
+**/*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# CI / GitLab
+.gitlab
+.gitlab-ci.yml

@@ -1,0 +1,38 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+.pnpm-store
+dist
+dist-ssr
+*.local
+
+# TanStack Router 가 vite plugin (TanStackRouterVite) 으로 자동 생성하는 파일.
+# pnpm dev / pnpm build 시 매번 갱신되므로 추적 X (CLAUDE.md 설명과 정합).
+src/routeTree.gen.ts
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+.claude/
+.agents/
+
+# Playwright
+playwright-report/
+e2e/playwright-report/
+e2e/test-results/
+.tanstack/

@@ -1,0 +1,79 @@
+{
+	"editor": {
+		"tabs": {
+			"Floor": "도면",
+			"Fixtures": "집기",
+			"Photos": "상품",
+			"Zones": "구역",
+			"Pdf": "PDF"
+		},
+		"binding": {
+			"active": "바인딩 중: {{category}}",
+			"instruction": "도면 또는 집기 목록에서 집기를 클릭하세요.",
+			"cancel": "취소"
+		},
+		"fixturesList": {
+			"title": "집기",
+			"count": "{{count}}개",
+			"empty": "파싱된 집기가 없습니다."
+		},
+		"fixtureEditor": {
+			"title": "집기 편집",
+			"emptyHint": "2D 또는 3D에서 집기를 선택하여 크기와 높이를 편집하세요.",
+			"asset3d": "3D 에셋",
+			"defaultBox": "— 기본 박스 —",
+			"width": "너비",
+			"depth": "깊이",
+			"height3d": "3D 높이",
+			"assets": {
+				"apparel_rack": "의류 랙 (스캐폴드)",
+				"apparel_rack_round": "원형 의류 랙",
+				"apparel_rack_wall": "벽면 의류 랙",
+				"apparel_rack_double": "더블 의류 랙",
+				"apparel_island": "의류 아일랜드",
+				"apparel_stack_table": "의류 스택 테이블",
+				"shoe_wall": "신발 벽장",
+				"shoe_gondola": "신발 곤돌라",
+				"shoe_pyramid": "신발 피라미드",
+				"shoe_island": "신발 아일랜드",
+				"display_table": "진열대",
+				"mannequin": "마네킹",
+				"counter": "카운터",
+				"fitting_room": "탈의실",
+				"bench": "벤치",
+				"cafe_counter": "카페 카운터",
+				"cafe_table": "카페 테이블",
+				"cafe_seat_round": "원형 카페 좌석",
+				"pastry_display": "베이커리 진열대",
+				"coffee_machine": "커피 머신",
+				"generic": "일반 집기"
+			}
+		},
+		"floorImage": {
+			"title": "도면 이미지",
+			"dropzone": "이미지를 드래그하거나 클릭해서 업로드",
+			"format": "PNG, JPG, JPEG",
+			"parsing": "도면 파싱 중...",
+			"done": "도면이 파싱되어 2D / 3D 에디터에 적용되었습니다.",
+			"error": "파싱에 실패했습니다. 집기 없이 이미지가 로드되었습니다.",
+			"parseTime": "파싱 소요: {{ms}}ms"
+		},
+		"floorSize": {
+			"title": "도면 크기 (px)",
+			"width": "너비",
+			"height": "높이"
+		},
+		"entrances": {
+			"title": "출입구",
+			"top": "상단",
+			"bottom": "하단",
+			"left": "좌측",
+			"right": "우측",
+			"fixtureCount": "현재 레이아웃 집기: {{count}}개"
+		},
+		"zones": {
+			"sectionTitle": "구역 추가",
+			"currentTitle": "현재 구역"
+		}
+	}
+}
