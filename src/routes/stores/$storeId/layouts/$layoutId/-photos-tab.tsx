@@ -81,19 +81,21 @@ function buildDetectionPreviewFromTask(
 						item.detection_item_id,
 					),
 			)
-			.map((item) => ({
-				detectionItemId: item.detection_item_id,
-				name:
-					prev?.items.find(
-						(prevItem) => prevItem.detectionItemId === item.detection_item_id,
-					)?.name ?? `상품 ${item.detection_item_id}`,
-				thumbnailUrl: item.thumbnail_url,
-				relativePosition: item.relative_position,
-				relativeSize: item.relative_size,
-				confidence: item.confidence,
-				assetGenerationStatus: item.asset_generation_status,
-				asset3dUrl: item.asset_3d_url,
-			})),
+			.map((item) => {
+				const prevItem = prev?.items.find(
+					(prevItem) => prevItem.detectionItemId === item.detection_item_id,
+				);
+				return {
+					detectionItemId: item.detection_item_id,
+					name: prevItem?.name ?? `상품 ${item.detection_item_id}`,
+					thumbnailUrl: item.thumbnail_url ?? prevItem?.thumbnailUrl ?? "",
+					relativePosition: item.relative_position,
+					relativeSize: item.relative_size,
+					confidence: item.confidence,
+					assetGenerationStatus: item.asset_generation_status,
+					asset3dUrl: item.asset_3d_url,
+				};
+			}),
 	};
 }
 
@@ -509,11 +511,17 @@ export function PhotosTab() {
 										: "border-border hover:border-primary/40"
 								}`}
 							>
-								<img
-									src={item.thumbnailUrl}
-									alt={`Detection ${item.detectionItemId}`}
-									className="h-20 w-full bg-slate-100 object-contain"
-								/>
+								{item.thumbnailUrl ? (
+									<img
+										src={item.thumbnailUrl}
+										alt={`Detection ${item.detectionItemId}`}
+										className="h-20 w-full bg-slate-100 object-contain"
+									/>
+								) : (
+									<div className="flex h-20 w-full items-center justify-center bg-slate-100 text-[10px] text-muted-foreground">
+										thumbnail 준비 중
+									</div>
+								)}
 								<div className="space-y-1 px-2 py-1.5 text-[10px] text-muted-foreground">
 									<input
 										value={item.name ?? `상품 ${item.detectionItemId}`}

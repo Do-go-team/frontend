@@ -364,10 +364,18 @@ export function FixtureLibraryManager({
 			setMessage("상품으로 만들 탐지 결과를 선택하세요.");
 			return;
 		}
+		const itemsWithThumbnail = items.filter(
+			(item): item is typeof item & { thumbnail_url: string } =>
+				typeof item.thumbnail_url === "string" && item.thumbnail_url.length > 0,
+		);
+		if (itemsWithThumbnail.length === 0) {
+			setMessage("선택한 탐지 결과의 썸네일 URL이 아직 준비되지 않았습니다.");
+			return;
+		}
 		createProducts.mutate(
 			{
 				store_id: storeId,
-				products: items.map((item) => ({
+				products: itemsWithThumbnail.map((item) => ({
 					image_url: item.thumbnail_url,
 					width: Math.max(
 						1,
@@ -685,11 +693,17 @@ export function FixtureLibraryManager({
 													}
 													disabled={item.status !== "DETECTED"}
 												/>
-												<img
-													src={item.thumbnail_url}
-													alt={`탐지 후보 ${item.slot + 1}`}
-													className="h-20 w-20 rounded-md object-cover"
-												/>
+												{item.thumbnail_url ? (
+													<img
+														src={item.thumbnail_url}
+														alt={`탐지 후보 ${item.slot + 1}`}
+														className="h-20 w-20 rounded-md object-cover"
+													/>
+												) : (
+													<div className="flex h-20 w-20 items-center justify-center rounded-md bg-slate-100 text-[10px] text-muted-foreground">
+														thumbnail 준비 중
+													</div>
+												)}
 												<div className="min-w-0 flex-1">
 													<div className="flex items-center gap-2">
 														<p className="text-sm font-semibold text-text">

@@ -21,7 +21,7 @@ export interface DetectionItem {
 	detection_item_id: number;
 	slot: number;
 	thumbnail_key: string;
-	thumbnail_url: string;
+	thumbnail_url: string | null;
 	relative_position: {
 		x: number;
 		y: number;
@@ -36,7 +36,7 @@ export interface DetectionItem {
 	asset_3d_id: number | null;
 	asset_3d_url: string | null;
 	confidence: number | null;
-	bbox_xyxy: [number, number, number, number];
+	bbox_xyxy: number[] | null;
 }
 
 export interface DetectionTask {

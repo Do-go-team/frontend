@@ -69,7 +69,7 @@ function refreshDetectionPreviewUrls(
 		if (!next) return item;
 		return {
 			...item,
-			thumbnailUrl: next.thumbnail_url,
+			thumbnailUrl: next.thumbnail_url ?? item.thumbnailUrl,
 			confidence: next.confidence,
 			assetGenerationStatus: next.asset_generation_status,
 			asset3dUrl: next.asset_3d_url,
@@ -82,7 +82,7 @@ function refreshDetectionPreviewUrls(
 		refreshedItems.push({
 			detectionItemId: item.detection_item_id,
 			name: `상품 ${item.detection_item_id}`,
-			thumbnailUrl: item.thumbnail_url,
+			thumbnailUrl: item.thumbnail_url ?? "",
 			relativePosition: item.relative_position,
 			relativeSize: item.relative_size,
 			confidence: item.confidence,
@@ -2652,17 +2652,23 @@ export function Canvas2D() {
 													height: `${height}%`,
 												}}
 											>
-												<img
-													src={item.thumbnailUrl}
-													alt={`Detection ${item.detectionItemId}`}
-													className="pointer-events-none h-full w-full object-contain"
-													onError={() => {
-														const taskId = fixture.detectionPreview?.taskId;
-														if (taskId !== null && taskId !== undefined) {
-															void refreshDetectionTaskThumbnails(taskId);
-														}
-													}}
-												/>
+												{item.thumbnailUrl ? (
+													<img
+														src={item.thumbnailUrl}
+														alt={`Detection ${item.detectionItemId}`}
+														className="pointer-events-none h-full w-full object-contain"
+														onError={() => {
+															const taskId = fixture.detectionPreview?.taskId;
+															if (taskId !== null && taskId !== undefined) {
+																void refreshDetectionTaskThumbnails(taskId);
+															}
+														}}
+													/>
+												) : (
+													<div className="pointer-events-none flex h-full w-full items-center justify-center bg-slate-100 text-[9px] text-slate-500">
+														thumbnail
+													</div>
+												)}
 												{item.name && (
 													<span className="pointer-events-none absolute left-1/2 top-full mt-0.5 max-w-[160%] -translate-x-1/2 truncate rounded bg-slate-900/80 px-1.5 py-0.5 text-center text-[9px] font-medium leading-tight text-white shadow-sm">
 														{item.name}
