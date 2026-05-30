@@ -4,7 +4,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 
-const API_PROXY_TARGET = "https://k14f106.p.ssafy.io";
+const API_PROXY_TARGET = "https://do-goproject.com";
 
 // https://vite.dev/config/
 export default defineConfig({
