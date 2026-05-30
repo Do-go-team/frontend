@@ -1,7 +1,9 @@
 import { http } from "@/shared/api/http";
 import type {
+	Asset3DTask,
 	DetectionTask,
 	DetectionTaskCreateResponse,
+	Generate3DResponse,
 	ProductDetectionAdapter,
 	RejectDetectionItemResponse,
 } from "./product-detection.adapter";
@@ -35,6 +37,24 @@ export const restProductDetectionAdapter: ProductDetectionAdapter = {
 		return http.get<DetectionTask>(
 			`/products/detection-tasks/${taskId}?include_rejected=${includeRejected}`,
 		);
+	},
+
+	async generate3D({
+		taskId,
+		selectedItemIds,
+		rejectUnselected = false,
+	}): Promise<Generate3DResponse> {
+		return http.post<Generate3DResponse>(
+			`/products/detection-tasks/${taskId}/generate-3d`,
+			{
+				selected_item_ids: selectedItemIds,
+				reject_unselected: rejectUnselected,
+			},
+		);
+	},
+
+	async getAsset3DTask(taskId: number): Promise<Asset3DTask> {
+		return http.get<Asset3DTask>(`/assets/3d-tasks/${taskId}`);
 	},
 
 	async rejectItem({ taskId, itemId }): Promise<RejectDetectionItemResponse> {

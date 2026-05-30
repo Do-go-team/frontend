@@ -23,6 +23,23 @@ export function useCreateDetectionTask() {
 	});
 }
 
+export function useGenerate3DForDetectionItems() {
+	const queryClient = useQueryClient();
+
+	return useMutation({
+		mutationFn: (params: {
+			taskId: number;
+			selectedItemIds: number[];
+			rejectUnselected?: boolean;
+		}) => ENV_PRODUCT_DETECTION_ADAPTER.generate3D(params),
+		onSuccess: (result) => {
+			queryClient.invalidateQueries({
+				queryKey: detectionTaskQueryKey(result.detection_task_id),
+			});
+		},
+	});
+}
+
 export function useRejectDetectionItem() {
 	const queryClient = useQueryClient();
 

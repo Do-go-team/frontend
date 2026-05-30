@@ -9,6 +9,7 @@ import { CameraCaptureDialog } from "@/features/product-detection/components/Cam
 import {
 	useCreateDetectionTask,
 	useDetectionTaskQuery,
+	useGenerate3DForDetectionItems,
 } from "@/features/product-detection/hooks/useDetectionTask";
 import { ENV_PRODUCT_DETECTION_ADAPTER } from "@/features/product-detection/product-detection.adapter";
 import type {
@@ -19,6 +20,7 @@ import type {
 const ALLOWED_RE = /\.(png|jpe?g|webp)$/i;
 const DETECTION_POLL_INTERVAL_MS = 2000;
 const DETECTION_POLL_LIMIT = 90;
+const ASSET_3D_POLL_LIMIT = 90;
 
 function wait(ms: number) {
 	return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -140,6 +142,7 @@ export function PhotosTab() {
 		updateFixture,
 	} = useLayout();
 	const createDetectionTask = useCreateDetectionTask();
+	const generate3D = useGenerate3DForDetectionItems();
 
 	useEffect(() => {
 		latestLayoutRef.current = layout;
@@ -225,12 +228,13 @@ export function PhotosTab() {
 		[persistDetectionPreview, updateFixture],
 	);
 
-	function patchSelectedFixtureDetection(
-		patch: Partial<FixtureDetectionPreview>,
-	) {
-		if (selectedIndex === null || !selectedFixture) return;
-		patchFixtureDetection(selectedIndex, selectedFixture, patch);
-	}
+	const patchSelectedFixtureDetection = useCallback(
+		(patch: Partial<FixtureDetectionPreview>) => {
+			if (selectedIndex === null || !selectedFixture) return;
+			patchFixtureDetection(selectedIndex, selectedFixture, patch);
+		},
+		[patchFixtureDetection, selectedFixture, selectedIndex],
+	);
 
 	const replaceLocalPreviewUrl = useCallback(
 		(fixtureKey: string, nextUrl: string) => {
@@ -268,6 +272,94 @@ export function PhotosTab() {
 			}
 		},
 		[patchFixtureDetection],
+	);
+
+	const pollAsset3DTasks = useCallback(async (assetTaskIds: number[]) => {
+		if (assetTaskIds.length === 0) return;
+		for (let attempt = 0; attempt < ASSET_3D_POLL_LIMIT; attempt += 1) {
+			const tasks = await Promise.all(
+				assetTaskIds.map((taskId) =>
+					ENV_PRODUCT_DETECTION_ADAPTER.getAsset3DTask(taskId),
+				),
+			);
+			if (
+				tasks.every(
+					(task) => task.status === "COMPLETED" || task.status === "FAILED",
+				)
+			) {
+				return;
+			}
+			await wait(DETECTION_POLL_INTERVAL_MS);
+		}
+	}, []);
+
+	const handleGenerate3D = useCallback(
+		async (detectionItemId: number) => {
+			if (
+				!selectedPreview?.taskId ||
+				!selectedFixture ||
+				selectedIndex === null
+			) {
+				return;
+			}
+			const prevItem = selectedPreview.items.find(
+				(item) => item.detectionItemId === detectionItemId,
+			);
+			patchSelectedFixtureDetection({
+				items: selectedPreview.items.map((item) =>
+					item.detectionItemId === detectionItemId
+						? { ...item, assetGenerationStatus: "PENDING" }
+						: item,
+				),
+			});
+			try {
+				const result = await generate3D.mutateAsync({
+					taskId: selectedPreview.taskId,
+					selectedItemIds: [detectionItemId],
+					rejectUnselected: false,
+				});
+				await pollAsset3DTasks(result.asset_generation_task_ids);
+				const task = await ENV_PRODUCT_DETECTION_ADAPTER.getTask(
+					selectedPreview.taskId,
+				);
+				patchFixtureDetection(
+					selectedIndex,
+					selectedFixture,
+					buildDetectionPreviewFromTask(task, selectedPreview),
+				);
+				if (result.asset_generation_task_ids.length === 0) {
+					setErrorMessage(
+						"3D 생성 요청은 처리됐지만 생성 작업 ID가 없습니다. 백엔드 3D worker 연결 상태를 확인해주세요.",
+					);
+				} else {
+					setErrorMessage(null);
+				}
+			} catch (err) {
+				const message =
+					err instanceof Error ? err.message : "3D 생성 요청에 실패했습니다.";
+				setErrorMessage(message);
+				patchSelectedFixtureDetection({
+					items: selectedPreview.items.map((item) =>
+						item.detectionItemId === detectionItemId
+							? {
+									...item,
+									assetGenerationStatus:
+										prevItem?.assetGenerationStatus ?? "NOT_REQUESTED",
+								}
+							: item,
+					),
+				});
+			}
+		},
+		[
+			generate3D,
+			patchFixtureDetection,
+			patchSelectedFixtureDetection,
+			pollAsset3DTasks,
+			selectedFixture,
+			selectedIndex,
+			selectedPreview,
+		],
 	);
 
 	const handleFile = useCallback(
@@ -500,11 +592,8 @@ export function PhotosTab() {
 				{selectedPreview?.items.length ? (
 					<div className="grid grid-cols-1 gap-2">
 						{selectedPreview.items.map((item) => (
-							<button
+							<div
 								key={item.detectionItemId}
-								type="button"
-								data-track="ai-detection-select"
-								onClick={() => setSelectedDetectionItem(item.detectionItemId)}
 								className={`overflow-hidden rounded-md border bg-white text-left transition-colors ${
 									selectedDetectionItemId === item.detectionItemId
 										? "border-primary ring-2 ring-primary/30"
@@ -549,8 +638,39 @@ export function PhotosTab() {
 											? `${(item.confidence * 100).toFixed(0)}%`
 											: "-"}
 									</p>
+									<div className="flex items-center justify-between gap-2 pt-1">
+										<span>
+											3D {item.assetGenerationStatus ?? "NOT_REQUESTED"}
+										</span>
+										<button
+											type="button"
+											data-track="ai-detection-select"
+											onClick={(event) => {
+												event.stopPropagation();
+												setSelectedDetectionItem(item.detectionItemId);
+											}}
+											className="rounded border border-border px-2 py-0.5 text-[10px] font-medium text-text hover:bg-slate-50"
+										>
+											선택
+										</button>
+										<button
+											type="button"
+											onClick={(event) => {
+												event.stopPropagation();
+												void handleGenerate3D(item.detectionItemId);
+											}}
+											disabled={
+												generate3D.isPending ||
+												item.assetGenerationStatus === "PENDING" ||
+												item.assetGenerationStatus === "PROCESSING"
+											}
+											className="rounded border border-primary/30 px-2 py-0.5 text-[10px] font-medium text-primary hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+										>
+											{item.asset3dUrl ? "3D 재생성" : "3D 생성"}
+										</button>
+									</div>
 								</div>
-							</button>
+							</div>
 						))}
 					</div>
 				) : (

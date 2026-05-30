@@ -69,6 +69,47 @@ export const mockProductDetectionAdapter: ProductDetectionAdapter = {
 		};
 	},
 
+	async generate3D({ taskId, selectedItemIds }) {
+		await delay(300);
+		const task = taskStore.get(taskId);
+		if (!task) {
+			throw new Error("탐지 작업을 찾을 수 없습니다.");
+		}
+		for (const item of task.items) {
+			if (selectedItemIds.includes(item.detection_item_id)) {
+				item.status = "SELECTED";
+				item.asset_generation_status = "COMPLETED";
+				item.asset_generation_task_id = taskId * 1000 + item.slot;
+				item.asset_3d_id = taskId * 10000 + item.slot;
+				item.asset_3d_url = "/shoes-test.glb";
+			}
+		}
+		return {
+			detection_task_id: taskId,
+			created_task_count: selectedItemIds.length,
+			selected_item_ids: selectedItemIds,
+			rejected_item_ids: [],
+			skipped_reject_item_ids: [],
+			asset_generation_task_ids: selectedItemIds.map(
+				(itemId) => taskId * 1000 + itemId,
+			),
+		};
+	},
+
+	async getAsset3DTask(taskId) {
+		await delay(300);
+		return {
+			task_id: taskId,
+			target_type: "DETECTION_ITEM",
+			target_id: taskId,
+			source_image_url: "/banner.png",
+			status: "COMPLETED" as const,
+			result_url: "/shoes-test.glb",
+			asset_3d_id: taskId,
+			error_message: null,
+		};
+	},
+
 	async rejectItem({ taskId, itemId }) {
 		await delay(200);
 		const task = taskStore.get(taskId);

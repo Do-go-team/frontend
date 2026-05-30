@@ -6,6 +6,7 @@ export type DetectionTaskStatus =
 
 export type DetectionItemStatus =
 	| "DETECTED"
+	| "SELECTED"
 	| "FAILED"
 	| "REGISTERED"
 	| "REJECTED";
@@ -53,6 +54,37 @@ export interface DetectionTask {
 export interface DetectionTaskCreateResponse {
 	detection_task_id: number;
 	status: DetectionTaskStatus;
+}
+
+export interface Generate3DRequest {
+	selected_item_ids: number[];
+	reject_unselected?: boolean;
+}
+
+export interface Generate3DResponse {
+	detection_task_id: number;
+	created_task_count: number;
+	selected_item_ids: number[];
+	rejected_item_ids: number[];
+	skipped_reject_item_ids: number[];
+	asset_generation_task_ids: number[];
+}
+
+export type Asset3DTaskStatus =
+	| "PENDING"
+	| "PROCESSING"
+	| "COMPLETED"
+	| "FAILED";
+
+export interface Asset3DTask {
+	task_id: number;
+	target_type: string;
+	target_id: number;
+	source_image_url: string;
+	status: Asset3DTaskStatus;
+	result_url: string | null;
+	asset_3d_id: number | null;
+	error_message: string | null;
 }
 
 export interface RejectDetectionItemResponse {
