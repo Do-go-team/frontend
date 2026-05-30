@@ -385,12 +385,15 @@ function EditorContent({
 			const versionToSave = layoutVersion;
 			try {
 				const fixturesToSave = editorFixturesToApiItems(layout.fixtures ?? []);
-				let latestLayout = await (options?.silent
-					? ENV_LAYOUT_ADAPTER.updateLayout(layoutIdNum, {
-							fixtures: fixturesToSave,
-						})
-					: saveLayoutMutation(fixturesToSave));
-				latestLayout ??= await ENV_LAYOUT_ADAPTER.getLayoutDetail(layoutIdNum);
+				if (options?.silent) {
+					await ENV_LAYOUT_ADAPTER.updateLayout(layoutIdNum, {
+						fixtures: fixturesToSave,
+					});
+				} else {
+					await saveLayoutMutation(fixturesToSave);
+				}
+				const latestLayout =
+					await ENV_LAYOUT_ADAPTER.getLayoutDetail(layoutIdNum);
 				queryClient.setQueryData(
 					["layouts", "detail", layoutIdNum],
 					latestLayout,
@@ -466,9 +469,11 @@ function EditorContent({
 
 			let baseLayoutDetail = layoutDetail ?? null;
 			if (hasUnsavedChanges || !selectedHasServerIds) {
-				baseLayoutDetail = await ENV_LAYOUT_ADAPTER.updateLayout(layoutIdNum, {
+				await ENV_LAYOUT_ADAPTER.updateLayout(layoutIdNum, {
 					fixtures: fixturesToSave,
 				});
+				baseLayoutDetail =
+					await ENV_LAYOUT_ADAPTER.getLayoutDetail(layoutIdNum);
 				queryClient.setQueryData(
 					["layouts", "detail", layoutIdNum],
 					baseLayoutDetail,
@@ -502,12 +507,11 @@ function EditorContent({
 				layout,
 			);
 			nextLayout = offsetCopiedFixtures(nextLayout, copiedLayoutFixtureIds);
-			const finalLayoutDetail = await ENV_LAYOUT_ADAPTER.updateLayout(
-				layoutIdNum,
-				{
-					fixtures: editorFixturesToApiItems(nextLayout.fixtures),
-				},
-			);
+			await ENV_LAYOUT_ADAPTER.updateLayout(layoutIdNum, {
+				fixtures: editorFixturesToApiItems(nextLayout.fixtures),
+			});
+			const finalLayoutDetail =
+				await ENV_LAYOUT_ADAPTER.getLayoutDetail(layoutIdNum);
 			queryClient.setQueryData(
 				["layouts", "detail", layoutIdNum],
 				finalLayoutDetail,

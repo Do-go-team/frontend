@@ -40,6 +40,7 @@ export function layoutDetailToEditorJSON(detail: LayoutDetail): LayoutJSON {
 	return {
 		floorWidth: detail.store_dimensions.width,
 		floorHeight: detail.store_dimensions.depth,
+		floorImageUrl: detail.floorplan_image_url ?? null,
 		fixtures,
 		products: [],
 	};

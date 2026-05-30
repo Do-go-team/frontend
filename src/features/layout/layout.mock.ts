@@ -175,7 +175,13 @@ export const mockLayoutAdapter: LayoutAdapter = {
 					});
 				}
 				mockLayoutDetails.set(layoutId, detail);
-				return cloneDetail(detail);
+				return {
+					layout_id: layoutId,
+					name: layout.name,
+					is_active: layout.is_active,
+					updated_at: layout.updated_at,
+					fixtures_updated_count: req.fixtures?.length,
+				};
 			}
 		}
 		throw new Error("레이아웃을 찾을 수 없습니다.");

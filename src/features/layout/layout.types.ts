@@ -116,7 +116,14 @@ export interface UpdateLayoutRequest {
 	fixtures?: UpdateLayoutFixtureInput[];
 }
 
-export type UpdateLayoutResponse = LayoutDetail;
+export interface UpdateLayoutResponse {
+	layout_id: number;
+	name?: string | null;
+	is_active?: boolean | null;
+	updated_at: string;
+	fixtures_updated_count?: number;
+	fixtures_deleted_count?: number;
+}
 
 // PDF Export
 export interface ExportLayoutPdfRequest {
