@@ -5,7 +5,14 @@ import {
 	useNavigate,
 	useParams,
 } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+	lazy,
+	Suspense,
+	useCallback,
+	useEffect,
+	useRef,
+	useState,
+} from "react";
 import { ENV_LAYOUT_ADAPTER } from "@/features/layout/layout.adapter";
 import {
 	editorFixturesToApiItems,
@@ -21,10 +28,12 @@ import type {
 	FixtureDetectionPreview,
 	LayoutJSON,
 } from "@/features/layout-editor/layout.types";
+import type { Scene3DCameraView } from "@/features/layout-editor/Scene3D";
 import { ENV_PRODUCT_DETECTION_ADAPTER } from "@/features/product-detection/product-detection.adapter";
 import { ENV_STORE_ADAPTER } from "@/features/store/store.adapter";
 import { ApiError } from "@/shared/types/api.types";
 import { Edit2DToolbar } from "./-edit2d-toolbar";
+import { Edit3DToolbar } from "./-edit3d-toolbar";
 import { EditorPanel } from "./-editor-panel";
 import type { ViewMode } from "./-mode-toggle";
 import { ModeToggle } from "./-mode-toggle";
@@ -34,6 +43,12 @@ type SaveToastState = {
 	message: string;
 	variant: "success" | "error";
 } | null;
+
+const Scene3D = lazy(() =>
+	import("@/features/layout-editor/Scene3D").then((m) => ({
+		default: m.Scene3D,
+	})),
+);
 
 export const Route = createFileRoute("/stores/$storeId/layouts/$layoutId/edit")(
 	{
@@ -45,10 +60,30 @@ function EditPage() {
 	const { layoutId, storeId } = useParams({
 		from: "/stores/$storeId/layouts/$layoutId/edit",
 	});
+	const [mode, setMode] = useState<ViewMode>("2D");
+	const [cameraView, setCameraView] = useState<Scene3DCameraView>("fit");
+	const [scene3DMounted, setScene3DMounted] = useState(false);
+	const preloadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const shouldMount3D = scene3DMounted || mode === "3D";
+
+	useEffect(() => {
+		preloadTimerRef.current = setTimeout(() => setScene3DMounted(true), 600);
+		return () => {
+			if (preloadTimerRef.current) clearTimeout(preloadTimerRef.current);
+		};
+	}, []);
 
 	return (
 		<LayoutProvider key={layoutId}>
-			<EditorContent layoutId={layoutId} storeId={storeId} />
+			<EditorContent
+				layoutId={layoutId}
+				storeId={storeId}
+				mode={mode}
+				setMode={setMode}
+				cameraView={cameraView}
+				setCameraView={setCameraView}
+				shouldMount3D={shouldMount3D}
+			/>
 		</LayoutProvider>
 	);
 }
@@ -180,11 +215,20 @@ function resolveExportDownloadUrl(downloadUrl: string): string {
 function EditorContent({
 	layoutId,
 	storeId,
+	mode,
+	setMode,
+	cameraView,
+	setCameraView,
+	shouldMount3D,
 }: {
 	layoutId: string;
 	storeId: string;
+	mode: ViewMode;
+	setMode: (mode: ViewMode) => void;
+	cameraView: Scene3DCameraView;
+	setCameraView: (view: Scene3DCameraView) => void;
+	shouldMount3D: boolean;
 }) {
-	const mode: ViewMode = "2D";
 	const navigate = useNavigate();
 	const [isEditorPanelCollapsed, setIsEditorPanelCollapsed] = useState(false);
 	const [isCameraCaptureOpen, setIsCameraCaptureOpen] = useState(false);
@@ -862,9 +906,28 @@ function EditorContent({
 				}`}
 			>
 				<div className="relative h-full w-full overflow-hidden rounded-2xl border border-border/60 bg-white/70 shadow-sm">
-					<div className="absolute inset-0">
+					<div
+						className="absolute inset-0 transition-opacity duration-300"
+						style={{
+							opacity: mode === "2D" ? 1 : 0,
+							pointerEvents: mode === "2D" ? "auto" : "none",
+						}}
+					>
 						<Canvas2D />
 					</div>
+					{shouldMount3D && (
+						<div
+							className="absolute inset-0 transition-opacity duration-300"
+							style={{
+								opacity: mode === "3D" ? 1 : 0,
+								pointerEvents: mode === "3D" ? "auto" : "none",
+							}}
+						>
+							<Suspense fallback={null}>
+								<Scene3D cameraView={cameraView} />
+							</Suspense>
+						</div>
+					)}
 					{isLoadingLayout && (
 						<div className="absolute inset-0 z-10 flex items-center justify-center bg-white/70 backdrop-blur-sm">
 							<span className="text-sm text-muted-foreground">
@@ -891,7 +954,7 @@ function EditorContent({
 			{!isCameraCaptureOpen && (
 				<div className="pointer-events-none absolute left-1/2 top-3 z-30 flex -translate-x-1/2 items-center gap-3">
 					<div className="pointer-events-auto">
-						<ModeToggle value={mode} onChange={() => {}} />
+						<ModeToggle value={mode} onChange={setMode} />
 					</div>
 					<button
 						type="button"
@@ -920,8 +983,65 @@ function EditorContent({
 				</div>
 			)}
 
-			{!isCameraCaptureOpen && (
-				<Edit2DToolbar onDuplicateFixtures={handleDuplicateFixtures} />
+			{!isCameraCaptureOpen &&
+				(mode === "2D" ? (
+					<Edit2DToolbar onDuplicateFixtures={handleDuplicateFixtures} />
+				) : (
+					<Edit3DToolbar />
+				))}
+
+			{!isCameraCaptureOpen && mode === "3D" && (
+				<div className="pointer-events-none absolute left-4 bottom-4 z-30 rounded-md border border-border bg-white/90 px-2 py-1 text-[11px] text-muted-foreground shadow-sm backdrop-blur">
+					Grid: 1 cell = 30cm
+				</div>
+			)}
+
+			{!isCameraCaptureOpen && mode === "3D" && (
+				<div className="pointer-events-none absolute right-4 top-3 z-30 flex items-center gap-2">
+					<div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-white/95 p-1 shadow-sm backdrop-blur">
+						{[
+							{ id: "fit", label: "Fit" },
+							{ id: "top", label: "Top" },
+							{ id: "front", label: "Front" },
+							{ id: "side", label: "Side" },
+						].map((item) => (
+							<button
+								key={item.id}
+								type="button"
+								onClick={() => setCameraView(item.id as Scene3DCameraView)}
+								className={
+									cameraView === item.id
+										? "rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm"
+										: "rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-200 hover:text-text"
+								}
+							>
+								{item.label}
+							</button>
+						))}
+					</div>
+					<div className="pointer-events-auto flex items-center gap-1 rounded-full border border-border bg-white/95 p-1 shadow-sm backdrop-blur">
+						<button
+							type="button"
+							onClick={() =>
+								window.dispatchEvent(new CustomEvent("export-3d-png"))
+							}
+							title="현재 3D 씬을 PNG로 저장"
+							className="rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-200 hover:text-text"
+						>
+							PNG
+						</button>
+						<button
+							type="button"
+							onClick={() =>
+								window.dispatchEvent(new CustomEvent("export-3d-gltf"))
+							}
+							title="3D 씬을 GLB 파일로 내보내기"
+							className="rounded-full px-3 py-1.5 text-xs font-medium text-gray-500 hover:bg-gray-200 hover:text-text"
+						>
+							GLB
+						</button>
+					</div>
+				</div>
 			)}
 		</div>
 	);
