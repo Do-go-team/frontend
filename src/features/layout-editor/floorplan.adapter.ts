@@ -26,6 +26,7 @@ const restFloorplanAdapter: FloorplanAdapter = {
 	},
 };
 
-export const ENV_FLOORPLAN_ADAPTER: FloorplanAdapter = import.meta.env.DEV
-	? mockFloorplanAdapter
-	: restFloorplanAdapter;
+export const ENV_FLOORPLAN_ADAPTER: FloorplanAdapter =
+	import.meta.env.VITE_USE_MOCK === "true"
+		? mockFloorplanAdapter
+		: restFloorplanAdapter;
