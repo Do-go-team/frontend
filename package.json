@@ -12,7 +12,8 @@
 		"preview": "vite preview",
 		"test:e2e": "playwright test",
 		"test:e2e:ui": "playwright test --ui",
-		"test": "echo 'No tests configured' && exit 0"
+		"test:unit": "vitest run",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "^5.2.2",
@@ -51,7 +52,8 @@
 		"eslint": "^9.39.4",
 		"eslint-plugin-react-hooks": "^7.1.1",
 		"typescript": "~6.0.2",
-		"vite": "^8.0.9"
+		"vite": "^8.0.9",
+		"vitest": "^4.1.8"
 	},
 	"packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
 }

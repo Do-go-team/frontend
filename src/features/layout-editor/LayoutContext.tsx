@@ -8,6 +8,12 @@ import {
 	useState,
 } from "react";
 import { defaultHeightForAssetType } from "./asset-defaults";
+import {
+	clampFixtureByBounds,
+	clampFixturePosition,
+	getFixtureBounds,
+	translateFixture,
+} from "./domain/fixture-geometry";
 import type {
 	Fixture,
 	FixtureAssetType,
@@ -20,127 +26,6 @@ import { isContainerFixture } from "./layout-transform";
 const STORAGE_KEY = "dogo-layout-draft";
 
 let _clipboard: Fixture[] = [];
-
-type FixtureBounds = {
-	left: number;
-	top: number;
-	right: number;
-	bottom: number;
-	width: number;
-	height: number;
-	centerX: number;
-	centerY: number;
-};
-
-function getFixtureBounds(fixture: Fixture): FixtureBounds {
-	const width = Math.max(1, fixture.width);
-	const height = Math.max(1, fixture.height);
-	const rotation = (((fixture.rotation ?? 0) % 360) + 360) % 360;
-
-	if (fixture.shape === "polygon" && fixture.polygon?.length) {
-		const xs = fixture.polygon.map(([x]) => x);
-		const ys = fixture.polygon.map(([, y]) => y);
-		const left = Math.min(...xs);
-		const top = Math.min(...ys);
-		const right = Math.max(...xs);
-		const bottom = Math.max(...ys);
-		return {
-			left,
-			top,
-			right,
-			bottom,
-			width: Math.max(1, right - left),
-			height: Math.max(1, bottom - top),
-			centerX: (left + right) / 2,
-			centerY: (top + bottom) / 2,
-		};
-	}
-
-	if (rotation === 0) {
-		return {
-			left: fixture.x,
-			top: fixture.y,
-			right: fixture.x + width,
-			bottom: fixture.y + height,
-			width,
-			height,
-			centerX: fixture.x + width / 2,
-			centerY: fixture.y + height / 2,
-		};
-	}
-
-	const centerX = fixture.x + width / 2;
-	const centerY = fixture.y + height / 2;
-	const rad = (rotation * Math.PI) / 180;
-	const cos = Math.cos(rad);
-	const sin = Math.sin(rad);
-	const corners = [
-		[-width / 2, -height / 2],
-		[width / 2, -height / 2],
-		[width / 2, height / 2],
-		[-width / 2, height / 2],
-	].map(([x, y]) => [centerX + x * cos - y * sin, centerY + x * sin + y * cos]);
-	const xs = corners.map(([x]) => x);
-	const ys = corners.map(([, y]) => y);
-	const left = Math.min(...xs);
-	const top = Math.min(...ys);
-	const right = Math.max(...xs);
-	const bottom = Math.max(...ys);
-	return {
-		left,
-		top,
-		right,
-		bottom,
-		width: Math.max(1, right - left),
-		height: Math.max(1, bottom - top),
-		centerX,
-		centerY,
-	};
-}
-
-function clampFixtureByBounds(
-	fixture: Fixture,
-	bounds: FixtureBounds,
-	floorWidth: number,
-	floorHeight: number,
-) {
-	let dx = 0;
-	let dy = 0;
-	if (bounds.left < 0) dx = -bounds.left;
-	else if (bounds.right > floorWidth) dx = floorWidth - bounds.right;
-	if (bounds.top < 0) dy = -bounds.top;
-	else if (bounds.bottom > floorHeight) dy = floorHeight - bounds.bottom;
-	fixture.x += dx;
-	fixture.y += dy;
-	if (
-		fixture.shape === "polygon" &&
-		fixture.polygon &&
-		(dx !== 0 || dy !== 0)
-	) {
-		fixture.polygon = fixture.polygon.map(([x, y]) => [x + dx, y + dy]);
-	}
-}
-
-function translateFixture(fixture: Fixture, dx: number, dy: number) {
-	fixture.x += dx;
-	fixture.y += dy;
-	if (fixture.shape === "polygon" && fixture.polygon) {
-		fixture.polygon = fixture.polygon.map(([x, y]) => [x + dx, y + dy]);
-	}
-}
-
-function clampFixturePosition(
-	fixture: Fixture,
-	floorWidth: number,
-	floorHeight: number,
-) {
-	const maxX = Math.max(0, floorWidth - Math.max(1, fixture.width));
-	const maxY = Math.max(0, floorHeight - Math.max(1, fixture.height));
-	return {
-		x: Math.min(Math.max(0, fixture.x), maxX),
-		y: Math.min(Math.max(0, fixture.y), maxY),
-	};
-}
 
 export interface PendingBinding {
 	photoId: string;
@@ -854,27 +739,33 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 							if (ox <= oy) {
 								const push = (ox + TOLERANCE) / 2;
 								if (aBounds.centerX < bBounds.centerX) {
-									translateFixture(a, -push, 0);
-									translateFixture(b, push, 0);
+									work[i] = translateFixture(a, -push, 0);
+									work[j] = translateFixture(b, push, 0);
 								} else {
-									translateFixture(a, push, 0);
-									translateFixture(b, -push, 0);
+									work[i] = translateFixture(a, push, 0);
+									work[j] = translateFixture(b, -push, 0);
 								}
 							} else {
 								const push = (oy + TOLERANCE) / 2;
 								if (aBounds.centerY < bBounds.centerY) {
-									translateFixture(a, 0, -push);
-									translateFixture(b, 0, push);
+									work[i] = translateFixture(a, 0, -push);
+									work[j] = translateFixture(b, 0, push);
 								} else {
-									translateFixture(a, 0, push);
-									translateFixture(b, 0, -push);
+									work[i] = translateFixture(a, 0, push);
+									work[j] = translateFixture(b, 0, -push);
 								}
 							}
 						}
 					}
 				}
-				for (const f of work) {
-					clampFixtureByBounds(f, getFixtureBounds(f), floorW, floorH);
+				for (let idx = 0; idx < work.length; idx += 1) {
+					const fixture = work[idx];
+					work[idx] = clampFixtureByBounds(
+						fixture,
+						getFixtureBounds(fixture),
+						floorW,
+						floorH,
+					);
 				}
 				if (!changed) break;
 			}
